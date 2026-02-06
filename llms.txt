@@ -1,0 +1,29 @@
+# cardmon
+
+Credit card benefits monitoring system.
+
+## Overview
+
+Monitors credit card marketing pages for changes, extracts Schumer box data (APRs, fees) from official T&Cs, and optionally uses LLM for benefits extraction.
+
+## Architecture
+
+- `cardmon/extractors/` - Plugin architecture for issuer-specific parsing
+- `cardmon/models.py` - Pydantic schemas: Schumer, Benefits, Card, CheckResult
+- `cardmon/repository.py` - SQLite storage
+- `cardmon/fetcher.py` - Async HTTP with httpx
+- `cardmon/monitor.py` - Orchestrator
+- `cardmon/cli.py` - Typer CLI
+
+## Key Patterns
+
+- Add new issuer: create `extractors/newissuer.py`, implement `parse(soup) -> Schumer`, register in `extractors/__init__.py`
+- Cards configured in `cards.yaml`, grouped by issuer
+- `tcs_url` should be explicit for JS-rendered pages
+
+## Commands
+
+    cardmon sync          # Load cards from cards.yaml
+    cardmon check         # Check all cards
+    cardmon check --issuer chase
+    cardmon queue         # Review queue

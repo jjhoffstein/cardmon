@@ -1,0 +1,83 @@
+# Card Monitor Configuration
+# tcs_url is required for reliable Schumer extraction
+
+cards:
+  barclays:
+    - name: JetBlue Card
+      url: https://cards.barclaycardus.com/banking/cards/jetblue-card/
+      # tcs_url auto-detected
+    - name: JetBlue Plus
+      url: https://cards.barclaycardus.com/banking/cards/jetblue-plus-card/
+    - name: JetBlue Premier
+      url: https://cards.barclaycardus.com/banking/cards/jetblue-premier-card/
+
+  chase:
+    - name: Sapphire Reserve
+      url: https://creditcards.chase.com/rewards-credit-cards/sapphire/reserve
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC62576.html
+    - name: Sapphire Preferred
+      url: https://creditcards.chase.com/rewards-credit-cards/sapphire/preferred
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC61729.html
+    - name: Southwest Plus
+      url: https://creditcards.chase.com/travel-credit-cards/southwest/plus
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC62472.html
+    - name: Southwest Premier
+      url: https://creditcards.chase.com/travel-credit-cards/southwest/premier
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC62473.html
+    - name: United Explorer
+      url: https://creditcards.chase.com/travel-credit-cards/united/united-explorer
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC63218.html
+    - name: United Club
+      url: https://creditcards.chase.com/travel-credit-cards/united/club-infinite
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC62957.html
+    - name: United Gateway
+      url: https://creditcards.chase.com/travel-credit-cards/united/united-gateway
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC60660.html
+    - name: United Quest
+      url: https://www2.theexplorercard.com/rewards-cards/quest-card
+      tcs_url: https://sites.chase.com/services/creatives/pricingandterms.html/content/dam/pricingandterms/LGC63539.html
+
+  amex:
+    - name: Platinum
+      url: https://www.americanexpress.com/us/credit-cards/card/platinum/
+      tcs_url: ~  # TODO: find from Rates & Fees popup
+    - name: Gold Card
+      url: https://www.americanexpress.com/us/credit-cards/card/gold-card/
+      tcs_url: ~
+    - name: Green
+      url: https://www.americanexpress.com/us/credit-cards/card/green/
+      tcs_url: ~
+    - name: Delta Blue
+      url: https://www.americanexpress.com/us/credit-cards/card/delta-skymiles-blue-american-express-card/
+      tcs_url: ~
+
+  citi:
+    - name: AAdvantage Platinum Select
+      url: https://creditcards.aa.com/credit-cards/citi-platinum-card-american-airlines-direct/
+      tcs_url: ~
+    - name: AAdvantage Executive
+      url: https://creditcards.aa.com/credit-cards/citi-executive-card-american-airlines-direct/
+      tcs_url: ~
+    - name: AAdvantage MileUp
+      url: https://creditcards.aa.com/credit-cards/citi-mileup-card-american-airlines-direct/
+      tcs_url: ~
+    - name: Strata Elite
+      url: https://www.citi.com/credit-cards/citi-strata-elite-credit-card
+      tcs_url: ~
+    - name: Strata Premier
+      url: https://www.citi.com/credit-cards/citi-strata-premier-credit-card
+      tcs_url: ~
+    - name: Strata
+      url: https://www.citi.com/credit-cards/citi-strata-credit-card
+      tcs_url: ~
+
+  capital_one:
+    - name: Venture X
+      url: https://www.capitalone.com/credit-cards/venture-x/
+      tcs_url: ~
+    - name: Venture
+      url: https://www.capitalone.com/credit-cards/venture/
+      tcs_url: ~
+    - name: VentureOne
+      url: https://www.capitalone.com/credit-cards/ventureone/
+      tcs_url: ~

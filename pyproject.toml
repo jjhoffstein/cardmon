@@ -1,0 +1,26 @@
+[project]
+name = "cardmon"
+version = "0.1.0"
+description = "Credit card benefits monitoring system"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx",
+    "beautifulsoup4",
+    "lxml",
+    "html2text",
+    "pydantic>=2.0",
+    "tiktoken",
+    "anthropic",
+    "typer",
+    "pyyaml",
+    "rich",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "ruff"]
+
+[project.scripts]
+cardmon = "cardmon.cli:app"
+
+[tool.ruff]
+line-length = 160
