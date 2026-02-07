@@ -1,18 +1,14 @@
-from bs4 import BeautifulSoup
-from ..models import Schumer
 from .base import BaseSchumerExtractor
 
 class ChaseExtractor(BaseSchumerExtractor):
-    def parse(self, soup: BeautifulSoup) -> Schumer:
-        data = {}
-        for row in soup.select('tr'):
-            cells = row.find_all('td')
-            if len(cells) < 2: continue
-            label, val = cells[0].get_text(' ', strip=True).lower(), cells[1].get_text(' ', strip=True)
-            if 'purchase' in label and 'apr' in label and 'annual' in label: data['purchase_apr'] = val
-            elif 'balance transfer' in label and 'apr' in label: data['balance_transfer_apr'] = val
-            elif 'cash advance' in label and 'apr' in label: data['cash_advance_apr'] = val
-            elif ('annual' in label and 'fee' in label) or 'membership fee' in label: data['annual_fee'] = val
-            elif 'foreign' in label: data['foreign_tx_fee'] = val
-            elif 'late' in label and 'payment' in label: data['late_fee'] = val
-        return Schumer(**data)
+    label_map = dict(
+        purchase_apr=['purchase', 'apr', 'annual'],
+        balance_transfer_apr=['balance transfer', 'apr'],
+        cash_advance_apr=['cash advance', 'apr'],
+        annual_fee=['annual', 'fee'],
+        foreign_tx_fee=['foreign'],
+        late_fee=['late', 'payment'],
+    )
+
+    @property
+    def cell_tags(self): return ['td']

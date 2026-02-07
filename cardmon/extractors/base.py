@@ -1,11 +1,34 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from bs4 import BeautifulSoup
 from ..models import Schumer
 
 class BaseSchumerExtractor(ABC):
     "Base class for issuer-specific Schumer extractors"
-    @abstractmethod
-    def parse(self, soup: BeautifulSoup) -> Schumer: pass
+
+    label_map = dict(
+        purchase_apr=['purchase', 'apr'],
+        balance_transfer_apr=['balance transfer', 'apr'],
+        cash_advance_apr=['cash advance', 'apr'],
+        annual_fee=['annual', 'fee'],
+        foreign_tx_fee=['foreign'],
+        late_fee=['late'],
+    )
+
+    def parse(self, soup: BeautifulSoup) -> Schumer:
+        data = {}
+        for row in soup.select(self.row_selector):
+            cells = row.find_all(self.cell_tags)
+            if len(cells) < 2: continue
+            label, val = cells[0].get_text(' ', strip=True).lower(), cells[1].get_text(' ', strip=True)
+            for field, keywords in self.label_map.items():
+                if all(k in label for k in keywords) and field not in data: data[field] = val; break
+        return Schumer(**data)
+
+    @property
+    def row_selector(self): return 'tr'
+
+    @property
+    def cell_tags(self): return ['td', 'th']
 
     async def find_tcs_url(self, client, url: str) -> str|None:
         try:
