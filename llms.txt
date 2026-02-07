@@ -1,29 +1,34 @@
 # cardmon
 
-Credit card benefits monitoring system.
+> Credit card benefits monitoring system
 
-## Overview
+## What This Does
 
-Monitors credit card marketing pages for changes, extracts Schumer box data (APRs, fees) from official T&Cs, and optionally uses LLM for benefits extraction.
+Monitors credit card marketing pages for changes, extracts Schumer box data (APRs, fees) from official T&Cs, optionally uses LLM for benefits extraction.
 
 ## Architecture
 
-- `cardmon/extractors/` - Plugin architecture for issuer-specific parsing
-- `cardmon/models.py` - Pydantic schemas: Schumer, Benefits, Card, CheckResult
-- `cardmon/repository.py` - SQLite storage
-- `cardmon/fetcher.py` - Async HTTP with httpx
-- `cardmon/monitor.py` - Orchestrator
-- `cardmon/cli.py` - Typer CLI
+    extractors/base.py     - BaseSchumerExtractor with label_map, row_selector, cell_tags
+    extractors/{issuer}.py - Override only what differs per issuer
+    models.py              - Schumer, Benefits, Card, CheckResult (Pydantic)
+    repository.py          - SQLite: cards, checks, queue tables
+    fetcher.py             - Async HTTP, hash(), diff()
+    monitor.py             - CardMonitor.check_card(), check_all()
+    cli.py                 - cardmon sync|check|queue|approve
+    config.py              - Load cards.yaml grouped by issuer
 
-## Key Patterns
+## Key Extension Point
 
-- Add new issuer: create `extractors/newissuer.py`, implement `parse(soup) -> Schumer`, register in `extractors/__init__.py`
-- Cards configured in `cards.yaml`, grouped by issuer
-- `tcs_url` should be explicit for JS-rendered pages
+New issuers: subclass BaseSchumerExtractor, override label_map/selectors, register in __init__.py
 
 ## Commands
 
-    cardmon sync          # Load cards from cards.yaml
-    cardmon check         # Check all cards
-    cardmon check --issuer chase
-    cardmon queue         # Review queue
+    cardmon sync                    # cards.yaml -> DB
+    cardmon check [--issuer chase]  # Check cards, queue changes
+    cardmon queue                   # List pending reviews
+    cardmon approve <id>            # Mark reviewed
+
+## Data Flow
+
+    cards.yaml -> sync -> DB
+    check -> fetch page -> hash -> changed? -> extract Schumer -> save -> queue

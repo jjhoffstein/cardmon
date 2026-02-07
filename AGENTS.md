@@ -1,36 +1,51 @@
-# Agent Instructions for cardmon
+# AGENTS.md
 
-## Project Context
+> Instructions for AI agents working on this codebase.
 
-This is a credit card benefits monitoring tool. It tracks changes to card marketing pages and extracts structured data from Terms & Conditions.
+## Project Overview
 
-## When Working on This Codebase
+**cardmon** monitors credit card marketing pages for changes and extracts structured data from Terms & Conditions. It uses a plugin architecture for issuer-specific parsing.
 
-### Adding a New Issuer
+## File Map
 
-1. Create `cardmon/extractors/{issuer}.py`
-2. Subclass `BaseSchumerExtractor`, implement `parse(soup) -> Schumer`
-3. Add to `_EXTRACTORS` dict in `cardmon/extractors/__init__.py`
-4. Add test fixture HTML in `tests/fixtures/`
+| File | Purpose |
+|------|---------|
+| `cardmon/extractors/base.py` | Base extractor with shared parse() logic |
+| `cardmon/extractors/{issuer}.py` | Issuer-specific overrides |
+| `cardmon/models.py` | Pydantic schemas |
+| `cardmon/repository.py` | SQLite CRUD |
+| `cardmon/fetcher.py` | Async HTTP with hash/diff |
+| `cardmon/monitor.py` | Orchestration |
+| `cardmon/cli.py` | Typer CLI |
+| `cardmon/config.py` | YAML config loader |
+
+## Common Tasks
+
+### Add a new issuer
+
+1. Create `cardmon/extractors/{issuer}.py` subclassing `BaseSchumerExtractor`
+2. Override `label_map`, `row_selector`, or `cell_tags` as needed
+3. Register in `cardmon/extractors/__init__.py`
+4. Add fixture: `tests/fixtures/{issuer}.html`
 5. Add test in `tests/test_extractors.py`
 
-### Adding a New Card
+### Add a new card
 
-Edit `cards.yaml` under the appropriate issuer. Include `tcs_url` if the page uses JavaScript to load T&Cs.
+Edit `cards.yaml`. Include `tcs_url` if T&Cs load via JavaScript.
 
-### Common Issues
+### Fix extraction failures
 
-- **403 errors**: Some issuers block requests. May need to add delays or different headers.
-- **Schumer = None**: T&C page structure differs from extractor. Check the HTML, update parser.
-- **T&C not found**: Page loads T&Cs via JS. Add explicit `tcs_url` in config.
+- 403/404: May need different headers or URL
+- Schumer=None: Check HTML structure, update `label_map` or selectors
+- T&C not found: Add explicit `tcs_url` in config
 
-### Testing
+## Testing
 
-    pytest tests/ -v
+    ./check.sh
 
-### Code Style
+## Code Style
 
 - Type hints required
 - Pydantic for data models
-- Async for HTTP operations
-- No comments in code - use docstrings for public functions only
+- Async for HTTP
+- No comments (docstrings for public APIs only)
