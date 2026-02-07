@@ -1,4 +1,4 @@
-import sqlite3, json
+import sqlite3
 from datetime import datetime
 from pathlib import Path
 from .models import Card, Schumer, Benefits

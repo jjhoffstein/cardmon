@@ -5,7 +5,6 @@ from rich.table import Table
 from .models import Card
 from .monitor import CardMonitor
 from .repository import CardRepository
-from .config import sync_cards
 
 app = typer.Typer(help="Credit card benefits monitoring")
 console = Console()
@@ -53,10 +52,5 @@ def approve(id: int, db: str = "cardmon.db"):
     repo = CardRepository(db)
     repo.queue_approve(id)
     console.print(f"[green]Approved {id}[/green]")
-
-@app.command()
-def sync(config: str = "cards.yaml", db: str = "cardmon.db"):
-    cards = sync_cards(config, db)
-    console.print(f"[green]Synced {len(cards)} cards from {config}[/green]")
 
 if __name__ == "__main__": app()

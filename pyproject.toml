@@ -12,7 +12,6 @@ dependencies = [
     "tiktoken",
     "anthropic",
     "typer",
-    "pyyaml",
     "rich",
 ]
 
@@ -24,3 +23,7 @@ cardmon = "cardmon.cli:app"
 
 [tool.ruff]
 line-length = 160
+
+
+[tool.ruff.lint]
+ignore = ["E401", "E701", "E702", "E722"]
