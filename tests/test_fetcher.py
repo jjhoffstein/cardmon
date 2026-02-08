@@ -1,6 +1,6 @@
 import pytest
 import asyncio
-import time
+from unittest.mock import AsyncMock, patch, MagicMock
 from cardmon.fetcher import CardFetcher
 
 @pytest.mark.asyncio
@@ -23,11 +23,22 @@ async def test_fetcher_semaphore_limits_concurrency():
         assert f._sem._value == 2
 
 @pytest.mark.asyncio
-async def test_fetcher_zero_delay():
+async def test_fetcher_fetch_returns_content():
     async with CardFetcher(delay=0) as f:
-        content, err = await f.fetch('https://httpbin.org/html')
+        mock_response = MagicMock()
+        mock_response.text = '<html><body>Hello World</body></html>'
+        f.client.get = AsyncMock(return_value=mock_response)
+        content, err = await f.fetch('https://example.com')
         assert err is None
-        assert content is not None
+        assert 'Hello World' in content
+
+@pytest.mark.asyncio
+async def test_fetcher_fetch_handles_error():
+    async with CardFetcher(delay=0) as f:
+        f.client.get = AsyncMock(side_effect=Exception('Network error'))
+        content, err = await f.fetch('https://example.com')
+        assert content is None
+        assert 'Network error' in err
 
 @pytest.mark.asyncio
 async def test_fetcher_hash_deterministic():
