@@ -13,6 +13,7 @@ Monitor credit card terms and benefits for changes.
 - Queues changes for human review
 - Sends Slack/webhook notifications when changes detected
 - Optionally uses Claude API to extract benefits (experimental)
+- Rate-limited fetching to be polite to servers
 
 ## Limitations
 
@@ -53,6 +54,17 @@ Monitor credit card terms and benefits for changes.
           url: https://creditcards.chase.com/...
           tcs_url: https://sites.chase.com/...  # Often required
 
+## Rate Limiting
+
+The fetcher uses a semaphore to limit concurrent requests and adds a delay between fetches:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_concurrent` | 3 | Maximum parallel requests |
+| `delay` | 0.5s | Pause after each request |
+
+This prevents overwhelming card issuer servers during batch checks.
+
 ## Environment Variables
 
 | Variable | Required | Description |
@@ -66,7 +78,7 @@ Monitor credit card terms and benefits for changes.
     ├── notifiers/        # Slack, webhook (plugin)
     ├── models.py         # Pydantic schemas
     ├── repository.py     # SQLite
-    ├── fetcher.py        # Async HTTP
+    ├── fetcher.py        # Async HTTP with rate limiting
     ├── monitor.py        # Orchestration
     └── cli.py            # CLI
 
