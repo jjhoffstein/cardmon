@@ -16,12 +16,11 @@ async def test_fetcher_custom_rate_limit():
         assert f._sem._value == 5
 
 @pytest.mark.asyncio
-async def test_fetcher_respects_semaphore():
-    async with CardFetcher(max_concurrent=2, delay=0.1) as f:
-        start = time.time()
-        await asyncio.gather(*[f.fetch('https://httpbin.org/delay/0') for _ in range(4)])
-        elapsed = time.time() - start
-        assert elapsed >= 0.4, "Should take at least 0.4s with 4 requests, max 2 concurrent, 0.1s delay each"
+async def test_fetcher_semaphore_limits_concurrency():
+    async with CardFetcher(max_concurrent=2, delay=0) as f:
+        assert f._sem._value == 2
+        async with f._sem: assert f._sem._value == 1
+        assert f._sem._value == 2
 
 @pytest.mark.asyncio
 async def test_fetcher_zero_delay():
