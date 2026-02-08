@@ -16,7 +16,7 @@ Early-stage. Works well for Barclays and Chase. Other issuers (Amex, Citi, Capit
 |------|---------|
 | `models.py` | Pydantic schemas: Schumer, Benefits, Card, CheckResult |
 | `repository.py` | SQLite: cards, checks, queue tables |
-| `fetcher.py` | Async HTTP with rate limiting (1s delay), hash, diff |
+| `fetcher.py` | Async HTTP with rate limiting (semaphore + delay), hash, diff |
 | `monitor.py` | Orchestrator + BenefitsExtractor (LLM) |
 | `config.py` | YAML loader for cards.yaml |
 | `cli.py` | Typer CLI: sync, check, ls, queue, approve, history |
@@ -27,6 +27,17 @@ Early-stage. Works well for Barclays and Chase. Other issuers (Amex, Citi, Capit
 
     cards.yaml -> sync -> SQLite
     check -> fetch -> hash -> changed? -> extract Schumer -> save -> queue -> notify
+
+## Rate Limiting
+
+`CardFetcher` uses a semaphore-based approach:
+
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `max_concurrent` | 3 | Limits parallel requests via `asyncio.Semaphore` |
+| `delay` | 0.5s | Pause after each request |
+
+This prevents overwhelming card issuer servers during batch checks.
 
 ## Common Tasks
 
@@ -57,11 +68,13 @@ Edit `cards.yaml`. Include `tcs_url` if T&Cs load via JavaScript.
 ## Testing
 
     ./check.sh
+    pytest tests/ -v
+
+Tests for rate limiting are in `tests/test_fetcher.py`.
 
 ## Known Limitations
 
 - No retry logic for transient failures
-- No concurrency limit (could hammer servers)
 - Amex/Citi/Capital One T&Cs often JS-rendered
 - BenefitsExtractor (LLM) is experimental
 
