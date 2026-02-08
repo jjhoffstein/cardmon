@@ -36,7 +36,7 @@ def check(name: str|None = None, issuer: str|None = None, db: str = "cardmon.db"
         status = "[red]ERROR[/red]" if r.error else ("[yellow]CHANGED[/yellow]" if r.changed else "[green]OK[/green]")
         fee = r.schumer.annual_fee if r.schumer else "?"
         console.print(f"{r.name}: {status} (fee: {fee})")
-    if webhook and any(r.changed for r in results): asyncio.run(mon.notify(results, webhook, slack))
+    if webhook and any(r.changed for r in results): mon.notify(results, webhook, slack)
 
 @app.command()
 def queue(db: str = "cardmon.db"):
@@ -53,23 +53,5 @@ def approve(id: int, db: str = "cardmon.db"):
     repo = CardRepository(db)
     repo.queue_approve(id)
     console.print(f"[green]Approved {id}[/green]")
-
-
-
-@app.command()
-def history(name: str, limit: int = 10, db: str = "cardmon.db"):
-    repo = CardRepository(db)
-    checks = repo.history(name, limit)
-    if not checks: console.print(f"[yellow]No history for {name}[/yellow]"); return
-    table = Table(title=f"History: {name}")
-    for col in ["Timestamp", "Hash", "Annual Fee"]: table.add_column(col)
-    for c in checks:
-        fee = "?"
-        if c.get('schumer'):
-            import json
-            s = json.loads(c['schumer'])
-            fee = s.get('annual_fee', '?')
-        table.add_row(c['ts'][:19], c['hash'], fee)
-    console.print(table)
 
 if __name__ == "__main__": app()

@@ -4,15 +4,22 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Monitor credit card benefits, rewards, and terms. Detects changes to card marketing pages and extracts structured data from official Terms & Conditions.
+Monitor credit card terms and benefits for changes.
 
-## Why?
+## What It Does
 
-Credit card issuers frequently change benefits, bonuses, and fees. This tool:
-- Monitors card pages for changes (hash-based, cost-efficient)
-- Extracts Schumer box data (APRs, fees) from official T&Cs
-- Optionally uses AI to extract benefits and restrictions
-- Queues changes for human review (important for financial accuracy)
+- Checks card marketing pages for changes (hash-based)
+- Extracts Schumer box data (APRs, fees) from Terms & Conditions pages
+- Queues changes for human review
+- Sends Slack/webhook notifications when changes detected
+- Optionally uses Claude API to extract benefits (experimental)
+
+## Limitations
+
+- **JS-rendered pages**: Amex, Citi, Capital One T&Cs often load via JavaScript — extraction may fail without explicit `tcs_url`
+- **Not real-time**: Designed for daily/weekly batch checks
+- **Manual T&C URL discovery**: Some cards require manually finding the T&C URL
+- **No retry logic yet**: Transient failures are not retried
 
 ## Installation
 
@@ -20,56 +27,64 @@ Credit card issuers frequently change benefits, bonuses, and fees. This tool:
 
 ## Quick Start
 
-1. Create a `cards.yaml` config (see `cards.yaml` for full example)
-2. Run `cardmon sync && cardmon check`
+    cardmon sync           # Load cards from cards.yaml
+    cardmon check          # Check all cards
+    cardmon queue          # View changes pending review
+    cardmon approve 1      # Mark reviewed
 
-## CLI Reference
+## CLI
 
 | Command | Description |
 |---------|-------------|
-| `cardmon add <name> <url> <issuer>` | Add a single card |
-| `cardmon ls [--issuer X]` | List monitored cards |
-| `cardmon sync` | Sync cards from cards.yaml |
-| `cardmon check [--name X] [--issuer Y]` | Check for changes |
-| `cardmon queue` | View pending reviews |
-| `cardmon approve <id>` | Mark item as reviewed |
+| `cardmon sync` | Load cards from cards.yaml |
+| `cardmon check [--issuer X] [--webhook URL]` | Check for changes |
+| `cardmon ls` | List cards |
+| `cardmon queue` | Pending reviews |
+| `cardmon approve <id>` | Mark reviewed |
+| `cardmon history <name>` | Check history for a card |
 
 ## Configuration
 
-Cards grouped by issuer in `cards.yaml`:
+`cards.yaml`:
 
     cards:
       chase:
         - name: Sapphire Reserve
           url: https://creditcards.chase.com/...
-          tcs_url: https://sites.chase.com/...  # Required if T&Cs load via JS
+          tcs_url: https://sites.chase.com/...  # Often required
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | No | Enables AI-powered benefits extraction |
+| `ANTHROPIC_API_KEY` | No | Enables AI benefits extraction |
 
 ## Architecture
 
     cardmon/
-    ├── extractors/       # Issuer-specific parsers (plugin architecture)
-    │   ├── base.py       # Shared parsing logic
-    │   └── chase.py      # Issuer overrides (label_map, selectors)
+    ├── extractors/       # Per-issuer HTML parsing (plugin)
+    ├── notifiers/        # Slack, webhook (plugin)
     ├── models.py         # Pydantic schemas
-    ├── repository.py     # SQLite storage
-    ├── fetcher.py        # Async HTTP client
+    ├── repository.py     # SQLite
+    ├── fetcher.py        # Async HTTP
     ├── monitor.py        # Orchestration
-    └── cli.py            # Typer CLI
+    └── cli.py            # CLI
+
+## Extending
+
+- **New issuer**: Subclass `BaseSchumerExtractor` in `extractors/`
+- **New notifier**: Subclass `BaseNotifier` in `notifiers/`
+
+See [AGENTS.md](AGENTS.md) for AI-assisted development guidance.
 
 ## Development
 
-    git clone https://github.com/jjhoffstein/cardmon.git
-    cd cardmon
     pip install -e ".[dev]"
-    ./check.sh              # Run linting + tests
+    ./check.sh
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+## Status
+
+Early-stage project. Works for Barclays and Chase cards. Other issuers partially supported.
 
 ## License
 

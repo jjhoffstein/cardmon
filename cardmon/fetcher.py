@@ -9,11 +9,7 @@ _h2t.ignore_links, _h2t.ignore_images, _h2t.body_width = False, False, 0
 
 class CardFetcher:
     "Async HTTP fetching with hash and diff"
-    def __init__(self, timeout: int = 30, delay: float = 1.0): self.timeout, self.delay, self.client = timeout, delay, None
-    "Async HTTP fetching with hash and diff"
-    def __init__(self, timeout: int = 30, delay: float = 1.0): self.timeout, self.delay, self.client = timeout, delay, None
-    "Async HTTP fetching with hash and diff"
-    
+    def __init__(self, timeout: int = 30): self.timeout, self.client = timeout, None
 
     async def __aenter__(self):
         self.client = httpx.AsyncClient(follow_redirects=True, headers=_hdrs, timeout=self.timeout)
@@ -26,7 +22,7 @@ class CardFetcher:
             r = await self.client.get(url)
             soup = BeautifulSoup(r.text, 'lxml')
             if selector: soup = soup.select_one(selector) or soup
-            import asyncio; await asyncio.sleep(self.delay); import asyncio; await asyncio.sleep(self.delay); return _h2t.handle(str(soup)).strip(), None
+            return _h2t.handle(str(soup)).strip(), None
         except Exception as e: return None, str(e)
 
     async def fetch_html(self, url: str) -> tuple[BeautifulSoup|None, str|None]:
