@@ -1,6 +1,5 @@
-import asyncio
-import logging
-from .models import CheckResult, Schumer
+import asyncio, logging, json, re
+from .models import CheckResult, Schumer, Benefits
 from .repository import CardRepository
 from .fetcher import CardFetcher
 from .extractors import get_extractor
@@ -11,7 +10,7 @@ class BenefitsExtractor:
     def __init__(self, api_key: str): self.api_key = api_key
 
     def _prepare_content(self, content: str, max_tokens: int = 12000) -> str:
-        import tiktoken, re
+        import tiktoken
         enc = tiktoken.encoding_for_model('gpt-4')
         skip = ['update your browser', 'cookie', 'privacy', 'footer', 'menu', 'log in', 'sign in']
         keep = ['reward', 'benefit', 'earn', 'point', 'mile', 'fee', 'rate', 'credit', 'bonus', 'travel', 'lounge', 'bag', 'status', 'welcome', 'annual']
@@ -22,12 +21,11 @@ class BenefitsExtractor:
         if len(tokens) > max_tokens: out = enc.decode(tokens[:max_tokens])
         return out
 
-    def extract(self, content: str):
-        import anthropic, json
-        from .models import Benefits
+    def extract(self, content: str) -> Benefits:
+        import anthropic
         client = anthropic.Anthropic(api_key=self.api_key)
         schema = json.dumps(Benefits.model_json_schema(), indent=2)
-        prompt = f"Extract credit card benefits from this page. Return ONLY valid JSON matching this schema:\n{schema}\n\nCONTENT:\n{self._prepare_content(content)}"
+        prompt = f"Extract credit card benefits. Return ONLY valid JSON matching this schema:\n{schema}\n\nCONTENT:\n{self._prepare_content(content)}"
         resp = client.messages.create(model='claude-sonnet-4-20250514', max_tokens=3000, messages=[dict(role='user', content=prompt)])
         txt = resp.content[0].text
         if '```' in txt: txt = txt.split('```')[1].replace('json', '', 1).strip()
@@ -62,3 +60,13 @@ class CardMonitor:
     async def check_all(self, issuer: str|None = None) -> list[CheckResult]:
         cards = self.repo.get_cards(issuer)
         return await asyncio.gather(*[self.check_card(c.name) for c in cards])
+
+    def notify(self, results: list, webhook_url: str, slack: bool = True):
+        import httpx
+        changed = [r for r in results if r.changed]
+        if not changed: return
+        if slack:
+            payload = dict(text=f"Card changes: {', '.join(r.name for r in changed)}", blocks=[dict(type="section", text=dict(type="mrkdwn", text="*Changes:*\n" + "\n".join(f"- {r.name}: {r.schumer.annual_fee if r.schumer else '?'}" for r in changed)))])
+        else:
+            payload = dict(event="card_change", cards=[dict(name=r.name, fee=r.schumer.annual_fee if r.schumer else None) for r in changed])
+        httpx.post(webhook_url, json=payload)

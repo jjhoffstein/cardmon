@@ -26,7 +26,7 @@ def ls(issuer: str|None = None, db: str = "cardmon.db"):
     console.print(table)
 
 @app.command()
-def check(name: str|None = None, issuer: str|None = None, db: str = "cardmon.db"):
+def check(name: str|None = None, issuer: str|None = None, db: str = "cardmon.db", webhook: str|None = None, slack: bool = True):
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     mon = CardMonitor(db, api_key)
@@ -36,6 +36,7 @@ def check(name: str|None = None, issuer: str|None = None, db: str = "cardmon.db"
         status = "[red]ERROR[/red]" if r.error else ("[yellow]CHANGED[/yellow]" if r.changed else "[green]OK[/green]")
         fee = r.schumer.annual_fee if r.schumer else "?"
         console.print(f"{r.name}: {status} (fee: {fee})")
+    if webhook and any(r.changed for r in results): mon.notify(results, webhook, slack)
 
 @app.command()
 def queue(db: str = "cardmon.db"):
