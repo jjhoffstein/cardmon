@@ -1,34 +1,107 @@
 # cardmon
 
-> Credit card benefits monitoring system
+> Monitor credit card terms and benefits for changes.
 
-## What This Does
+## Overview
 
-Monitors credit card marketing pages for changes, extracts Schumer box data (APRs, fees) from official T&Cs, optionally uses LLM for benefits extraction.
+cardmon tracks credit card marketing pages and Terms & Conditions documents, detecting changes and extracting structured data. It uses hash-based change detection for efficiency and supports plugin architectures for issuer-specific parsing and notifications.
+
+## Features
+
+- Hash-based change detection (only process when content changes)
+- Schumer box extraction (APRs, fees) from T&C pages
+- Rate-limited fetching (semaphore + delay) to be polite to servers
+- Slack and webhook notifications when changes detected
+- Human review queue for verifying changes
+- Optional LLM-powered benefits extraction via Claude API
 
 ## Architecture
 
-    extractors/base.py     - BaseSchumerExtractor with label_map, row_selector, cell_tags
-    extractors/{issuer}.py - Override only what differs per issuer
-    models.py              - Schumer, Benefits, Card, CheckResult (Pydantic)
-    repository.py          - SQLite: cards, checks, queue tables
-    fetcher.py             - Async HTTP, hash(), diff()
-    monitor.py             - CardMonitor.check_card(), check_all()
-    cli.py                 - cardmon sync|check|queue|approve
-    config.py              - Load cards.yaml grouped by issuer
-
-## Key Extension Point
-
-New issuers: subclass BaseSchumerExtractor, override label_map/selectors, register in __init__.py
-
-## Commands
-
-    cardmon sync                    # cards.yaml -> DB
-    cardmon check [--issuer chase]  # Check cards, queue changes
-    cardmon queue                   # List pending reviews
-    cardmon approve <id>            # Mark reviewed
+    cardmon/
+    ├── models.py         Pydantic schemas: Schumer, Benefits, Card, CheckResult, SpendMultiplier, Credit, TravelBenefit
+    ├── fetcher.py        Async HTTP with rate limiting (max_concurrent=3, delay=0.5s), hash(), diff()
+    ├── repository.py     SQLite persistence: cards, checks, queue tables
+    ├── monitor.py        Orchestrator: CardMonitor.check_card(), check_all(), BenefitsExtractor (LLM)
+    ├── config.py         YAML loader for cards.yaml
+    ├── cli.py            Typer CLI with Rich output
+    ├── extractors/       Per-issuer Schumer parsing (plugin architecture)
+    │   ├── base.py       BaseSchumerExtractor with label_map, row_selector, cell_tags
+    │   ├── chase.py      Chase-specific overrides
+    │   └── barclays.py   Barclays-specific overrides
+    └── notifiers/        Notification plugins
+        ├── base.py       BaseNotifier abstract class
+        ├── slack.py      Slack Block Kit notifications
+        └── webhook.py    Generic webhook POST
 
 ## Data Flow
 
-    cards.yaml -> sync -> DB
-    check -> fetch page -> hash -> changed? -> extract Schumer -> save -> queue
+    cards.yaml -> sync -> SQLite
+    check -> fetch page -> hash -> changed? -> extract Schumer -> save -> queue -> notify
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `cardmon sync` | Load cards from cards.yaml into database |
+| `cardmon check [--issuer X] [--webhook URL]` | Check cards for changes |
+| `cardmon ls` | List all monitored cards |
+| `cardmon queue` | View changes pending human review |
+| `cardmon approve <id>` | Mark a queued item as reviewed |
+| `cardmon history <name>` | View check history for a card |
+
+## Configuration
+
+cards.yaml structure:
+
+    cards:
+      chase:
+        - name: Sapphire Reserve
+          url: https://creditcards.chase.com/...
+          tcs_url: https://sites.chase.com/...
+
+Environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ANTHROPIC_API_KEY` | No | Enables LLM benefits extraction |
+
+## Rate Limiting
+
+CardFetcher uses semaphore-based rate limiting:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_concurrent` | 3 | Maximum parallel requests |
+| `delay` | 0.5s | Pause after each request |
+
+## Extension Points
+
+**New issuer extractor:**
+1. Subclass `BaseSchumerExtractor` in `extractors/{issuer}.py`
+2. Override `label_map`, `row_selector`, or `cell_tags` as needed
+3. Register in `extractors/__init__.py`
+
+**New notifier:**
+1. Subclass `BaseNotifier` in `notifiers/{service}.py`
+2. Implement `async def send(self, results) -> None`
+3. Register in `notifiers/__init__.py`
+
+## Issuer Support
+
+| Issuer | Status | Notes |
+|--------|--------|-------|
+| Chase | ✅ Full | Explicit tcs_url in config |
+| Barclays | ✅ Full | Auto-detects T&C links |
+| Amex | ⚠️ Partial | T&Cs often JS-rendered |
+| Citi | ⚠️ Partial | T&Cs often JS-rendered |
+| Capital One | ⚠️ Partial | T&Cs often JS-rendered |
+
+## Development
+
+    pip install -e ".[dev]"
+    ./check.sh
+    pytest tests/ -v
+
+## License
+
+MIT
