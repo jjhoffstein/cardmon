@@ -61,12 +61,7 @@ class CardMonitor:
         cards = self.repo.get_cards(issuer)
         return await asyncio.gather(*[self.check_card(c.name) for c in cards])
 
-    def notify(self, results: list, webhook_url: str, slack: bool = True):
-        import httpx
-        changed = [r for r in results if r.changed]
-        if not changed: return
-        if slack:
-            payload = dict(text=f"Card changes: {', '.join(r.name for r in changed)}", blocks=[dict(type="section", text=dict(type="mrkdwn", text="*Changes:*\n" + "\n".join(f"- {r.name}: {r.schumer.annual_fee if r.schumer else '?'}" for r in changed)))])
-        else:
-            payload = dict(event="card_change", cards=[dict(name=r.name, fee=r.schumer.annual_fee if r.schumer else None) for r in changed])
-        httpx.post(webhook_url, json=payload)
+    async def notify(self, results: list, webhook_url: str, slack: bool = True):
+        from .notifiers import get_notifier
+        notifier = get_notifier(webhook_url, slack)
+        await notifier.send(results)
