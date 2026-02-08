@@ -65,3 +65,14 @@ class CardMonitor:
         from .notifiers import get_notifier
         notifier = get_notifier(webhook_url, slack)
         await notifier.send(results)
+    def notify(self, results: list, webhook_url: str, slack: bool = True):
+        "Send notification for changed cards to webhook (Slack or generic)"
+        import httpx
+        changed = [r for r in results if r.changed]
+        if not changed: return
+        if slack:
+            payload = dict(text=f"🃏 Card changes detected: {', '.join(r.name for r in changed)}", blocks=[dict(type="section", text=dict(type="mrkdwn", text="*Card changes detected:*\n" + "\n".join(f"• {r.name}: fee={r.schumer.annual_fee if r.schumer else '?'}" for r in changed)))])
+        else:
+            payload = dict(event="card_change", cards=[dict(name=r.name, annual_fee=r.schumer.annual_fee if r.schumer else None) for r in changed])
+        httpx.post(webhook_url, json=payload)
+

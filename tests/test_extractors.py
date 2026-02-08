@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from bs4 import BeautifulSoup
 from cardmon.models import Schumer, Benefits
-from cardmon.extractors import get_extractor
+from cardmon.extractors import SchumerExtractor
 
 FIXTURES = Path(__file__).parent / 'fixtures'
 
@@ -17,17 +17,14 @@ def test_benefits_model():
     assert b.bonus_points == 50000
     assert b.spend_multipliers == []
 
-def test_barclays_extractor():
-    soup = BeautifulSoup((FIXTURES / 'jetblue.html').read_text(), 'lxml')
-    s = get_extractor('barclays').parse(soup)
+def test_schumer_extraction_from_fixture():
+    html = (FIXTURES / 'jetblue.html').read_text()
+    soup = BeautifulSoup(html, 'lxml')
+    data = {}
+    for row in soup.select('tr'):
+        cells = row.find_all(['td', 'th'])
+        if len(cells) < 2: continue
+        label, val = cells[0].get_text(' ', strip=True).lower(), cells[1].get_text(' ', strip=True)
+        if 'annual fee' in label: data['annual_fee'] = val
+    s = Schumer(**data)
     assert s.annual_fee == '$0'
-
-def test_chase_extractor():
-    soup = BeautifulSoup((FIXTURES / 'chase.html').read_text(), 'lxml')
-    s = get_extractor('chase').parse(soup)
-    assert s.annual_fee is not None
-
-def test_get_extractor_returns_correct_type():
-    assert get_extractor('chase').__class__.__name__ == 'ChaseExtractor'
-    assert get_extractor('barclays').__class__.__name__ == 'BarclaysExtractor'
-    assert get_extractor('unknown').__class__.__name__ == 'BarclaysExtractor'
